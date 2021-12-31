@@ -1,26 +1,30 @@
 # Cumulative Table Design Example
 
-This repo shows how to build a robust cumulative table design with an example of monthly active users. 
+This repo shows how to build a robust cumulative table design. 
+
+![Cumulative Table diagram](images/cumulative_table_design.jpg)
 
 Cumulative table design can be very useful to avoid scanning event/daily data too many times. 
+
+> The longer the time frame of your analysis, the more critical this pattern becomes
 
 It also gives us the ability to look at a users recent history all together in one row. 
 
 We do this by building metric arrays *(usually of a fixed length)* where the first element in the array is the value for the current day. And the 30th element is the value 30 days ago. 
 
 
-## Example Monthly Active Users
+## Example Daily, Weekly, Monthly Active Users
 
 > All query syntax is using Presto/Trino syntax and functions. This example would need to be modified for other SQL variants!
 
 In this repo, we'll be looking into how to build this design for calculated daily, weekly and monthly active users. 
-Our source table in this case is called **[events](tables/events.sql)**. 
+Our source table in this case is **[events](tables/events.sql)**. 
 - **A user is active on any given day if they generate an event for that day.**
 
 
 In this repo, we'll be using the dates 
-- **2022-01-01** as **today** 
-- **2021-12-31** as **yesterday**
+- **2022-01-01** as **today** in Airflow terms this is `{{ ds }}`
+- **2021-12-31** as **yesterday** in Airflow templating terms this is `{{ yesterday_ds}}`
 
 This design is pretty simple with only 3 steps:
 
