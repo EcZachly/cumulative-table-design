@@ -39,7 +39,7 @@ SELECT
       -- if any of the first 7 array values are non-zero, then the user was active in the last week
       CASE WHEN ARRAY_SUM(SLICE(activity_array, 1, 7)) > 0 THEN 1 ELSE 0 END AS is_weekly_active
       activity_array,
-
+      snapshot_date
 FROM combined
 
 
