@@ -62,6 +62,15 @@ SELECT
       -- if any of the first 7 array values are non-zero, then the user was active in the last week
       CASE WHEN ARRAY_SUM(SLICE(activity_array, 1, 7)) > 0 THEN 1 ELSE 0 END AS is_weekly_active
       activity_array,
+      like_array,
+      share_array,
+      comment_array,
+      ARRAY_SUM(SLICE(like_array, 1, 7)) as num_likes_7d,
+      ARRAY_SUM(SLICE(comment_array, 1, 7)) as num_comments_7d,
+      ARRAY_SUM(SLICE(share_array, 1, 7)) as num_shares_7d,
+      ARRAY_SUM(like_array) as num_likes_30d,
+      ARRAY_SUM(comment_array) as num_comments_30d,
+      ARRAY_SUM(share_array) as num_shares_30d,
       snapshot_date
 FROM combined
 

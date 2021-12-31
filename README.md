@@ -19,22 +19,39 @@ These metric arrays allow us to easily answer queries about the history of all u
 ## Example User activity and engagement cumulated
 
 > All query syntax is using Presto/Trino syntax and functions. This example would need to be modified for other SQL variants!
+> 
+> We'll be using the dates:
+>  - **2022-01-01** as **today** in Airflow terms this is `{{ ds }}`
+>  - **2021-12-31** as **yesterday** in Airflow templating terms this is `{{ yesterday_ds}}`
 
-In this example, we'll be looking into how to build this design for calculated daily, weekly and monthly active users as well as the users likes, comments, and shares. 
+
+In this example, we'll be looking into how to build this design for calculate daily, weekly and monthly active users as well as the users likes, comments, and shares. 
 
 Our source table in this case is **[events](tables/events.sql)**. 
 - **A user is active on any given day if they generate an event for that day.**
 - The table has `event_type` which is `like`, `comment`, `share`, or `view`
 
-> We'll be using the dates
->  - **2022-01-01** as **today** in Airflow terms this is `{{ ds }}`
->  - **2021-12-31** as **yesterday** in Airflow templating terms this is `{{ yesterday_ds}}`
+It's tempting to think the solution to this is running a pipeline something like
+```
+    SELECT 
+        COUNT(DISTINCT user_id) as num_monthly_active_users,
+        COUNT(CASE WHEN event_type = 'like' THEN 1 END) as num_likes_30d,
+        COUNT(CASE WHEN event_type = 'comment' THEN 1 END) as num_comments_30d,
+        COUNT(CASE WHEN event_type = 'share' THEN 1 END) as num_shares_30d,
+        ...
+    FROM events
+    WHERE event_date BETWEEN DATE_SUB('2022-01-01', 30), AND '2022-01-01'
+```
+
+The problem with this is we're scanning 30 days of event data every day to produce these numbers. A pretty wasteful, yet simple pipeline. 
+There should be a way where we only have to scan the event data once and combine with the results from the previous 29 days, right? Can we make a data structure where a data scientist can query our data and easily know the number of actions a user took in the last N number of days? 
+
 
 This design is pretty simple with only 3 steps:
 
 ### The Daily table step
   - In this step we aggregate just the events of today to see who is daily active. The table schema is [here](tables/active_users_daily.sql)
-  - This query is pretty simple and straight forward check it out[here](queries/active_users_daily_populate.sql)
+  - This query is pretty simple and straight forward [here](queries/active_users_daily_populate.sql)
     - `GROUP BY user_id` and then count them as daily active if they have any events
     - we add a few `COUNT(CASE WHEN event_type = 'like' THEN 1 END)` statements to figure out the number of daily likes, comments, and shares as well
 ### The Cumulation step
@@ -53,6 +70,7 @@ This design is pretty simple with only 3 steps:
       - `CASE WHEN ARRAY_SUM(SLICE(activity_array, 1, 7)) > 0 THEN 1 ELSE 0 END` gives us weekly active since we only check the first 7 elements of the array *(i.e. the last 7 days)*
     - Summing the number of likes, comments, and shares in the past 7 days is also easy
       - `ARRAY_SUM(SLICE(like_array, 1, 7)) as num_likes_7d` gives us the number of likes this user did in the past 7 days
+      - `ARRAY_SUM(like_array) as num_likes_30d` gives us the number of likes this user did in the past 30 days since the array is fixed to that size
 ### The DAG step
   - The example DAG can be found [here](cumulative_table_dag.py)
   - Key things to remember for the DAG are:

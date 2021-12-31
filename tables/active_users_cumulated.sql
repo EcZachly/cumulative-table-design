@@ -10,6 +10,9 @@ create table active_users_cumulated (
     num_likes_7d: integer,
     num_comments_7d: integer,
     num_shares_7d: integer,
+    num_likes_30d: integer,
+    num_comments_30d: integer,
+    num_shares_30d: integer,
     snapshot_date: date
 )
 
