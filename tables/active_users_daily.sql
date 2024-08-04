@@ -1,4 +1,4 @@
-create table active_users_cumulated (
+create table active_users_daily (
     user_id: integer,
     is_active_today: integer,
     num_likes: integer,
